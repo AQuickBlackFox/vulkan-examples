@@ -28,7 +28,7 @@ int main()
 	std::cout << "Number of Vulkan capable GPUs: " << gpuCount << std::endl;
 
 	/*
-	Example 02 starts here!
+	Sample 02 starts here!
 	*/
 
 	std::vector<VkPhysicalDevice>physicalDevices(gpuCount);
