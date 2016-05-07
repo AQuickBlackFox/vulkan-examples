@@ -7,7 +7,7 @@ int main()
 	VkResult result;
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "VulkanTriangle";
+	appInfo.pApplicationName = "VulkanDevices";
 	appInfo.pEngineName = "GPU0";
 	appInfo.apiVersion = VK_API_VERSION_1_0;
 
