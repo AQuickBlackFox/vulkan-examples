@@ -46,13 +46,14 @@ int main()
 	vkEnumeratePhysicalDevices(pInstance, &gpuCount, physicalDevices.data());
 
 	uint32_t graphicsQueueId;
+	uint32_t computeQueueId;
 
-	for (uint32_t gpu = 0; gpu < gpuCount;gpu++) {
+	for (uint32_t i = 0; i < gpuCount;i++) {
 		uint32_t queueCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[gpu], &queueCount, NULL);
-		std::cout << "Number of Queue Families on GPU " << gpu << " are: " << queueCount << std::endl;
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueCount, NULL);
+		std::cout << "Number of Queue Families on GPU " << i << " are: " << queueCount << std::endl;
 		std::vector<VkQueueFamilyProperties> queueProps(queueCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[gpu], &queueCount, queueProps.data());
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueCount, queueProps.data());
 		for (uint32_t queue = 0;queue < queueCount;queue++)
 		{
 			std::cout << "Number of Queues supported in this family: " << queueProps[queue].queueCount << std::endl;
@@ -60,14 +61,15 @@ int main()
 			if (queueProps[queue].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 				graphicsQueueId = queue;
 			}
+			if (queueProps[queue].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+				computeQueueId = queue;
+			}
 		}
-	}
 
-	/*
-	Sample 03 starts here!
-	*/
-	std::cout << std::endl;
-	for (int i = 0;i < gpuCount;i++) {
+		/*
+		Sample 03 starts here!
+		*/
+		std::cout << std::endl;
 		const float queueProperties = 0.0f;
 		VkDeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -139,6 +141,12 @@ int main()
 			std::cout << deviceMemoryProps.memoryTypes[i].heapIndex << std::endl;
 			std::cout << deviceMemoryProps.memoryTypes[i].propertyFlags << std::endl;
 		}
+
+		VkQueue graphicsQueue;
+		VkQueue computeQueue;
+		vkGetDeviceQueue(device, graphicsQueueId, 0, &graphicsQueue);
+		vkGetDeviceQueue(device, computeQueueId, 0, &computeQueue);
+
 		std::cout << std::endl;
 	}
 	std::cout << "Exiting.. " << std::endl;
