@@ -97,8 +97,12 @@ int main()
 
 		VkPhysicalDeviceProperties deviceProperties;
 		VkPhysicalDeviceFeatures deviceFeatures;
+		VkPhysicalDeviceMemoryProperties deviceMemoryProps;
+
 		vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
 		vkGetPhysicalDeviceFeatures(physicalDevices[i], &deviceFeatures);
+		vkGetPhysicalDeviceMemoryProperties(physicalDevices[i], &deviceMemoryProps);
+
 		std::cout << std::endl;
 		std::cout << "On GPU " << i <<std::endl;
 		std::cout <<"API Version   : "<< deviceProperties.apiVersion << std::endl;
@@ -117,6 +121,25 @@ int main()
 		std::cout << "Max Compute Work Group Size   : x = " << deviceProperties.limits.maxComputeWorkGroupSize[0];
 		std::cout << ", y = " << deviceProperties.limits.maxComputeWorkGroupSize[1];
 		std::cout << ", z = " << deviceProperties.limits.maxComputeWorkGroupSize[2] << std::endl;
+
+		std::cout << "== Memory ==" << std::endl;
+		uint32_t heapCount = deviceMemoryProps.memoryHeapCount;
+		uint32_t typeCount = deviceMemoryProps.memoryTypeCount;
+		std::cout << "Number of memory types supported: " << deviceMemoryProps.memoryTypeCount << std::endl;
+		std::cout << "Memory types supported          : " << deviceMemoryProps.memoryHeapCount << std::endl;
+		for (int j = 0;j < heapCount;j++)
+		{
+			std::cout << "For heap: " << j << std::endl;
+			std::cout << deviceMemoryProps.memoryHeaps[i].size << std::endl;
+			std::cout << deviceMemoryProps.memoryHeaps[i].flags << std::endl;
+		}
+		for (int j = 0;j < typeCount;j++)
+		{
+			std::cout << "For type: " << j << std::endl;
+			std::cout << deviceMemoryProps.memoryTypes[i].heapIndex << std::endl;
+			std::cout << deviceMemoryProps.memoryTypes[i].propertyFlags << std::endl;
+		}
+		std::cout << std::endl;
 	}
 	std::cout << "Exiting.. " << std::endl;
 }
