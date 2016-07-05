@@ -216,13 +216,14 @@ int main()
 
 	VkBufferCreateInfo inputVertexBufferInfo = {};
 	inputVertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	inputVertexBufferInfo.size = inputVertices.size()*sizeof(Vertex);
+	inputVertexBufferInfo.size = inputVertices.size() * sizeof(Vertex);
 	inputVertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 	result = vkCreateBuffer(device, &inputVertexBufferInfo, nullptr, &inputStagingBuffer.buffer);
 	if (result == VK_SUCCESS) { std::cout << "Buffer Creation Successful!" << std::endl; }
 
 	VkMemoryRequirements memReqs = {};
+	VkMemoryAllocateInfo memAllocStagingBuffer = {};
 	VkMemoryAllocateInfo memAlloc = {};
 	vkGetBufferMemoryRequirements(device, inputStagingBuffer.buffer, &memReqs);
 	std::cout << memReqs.size << " " << memReqs.alignment << " " << (memReqs.memoryTypeBits & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) << " ";
@@ -233,7 +234,8 @@ int main()
 
 	memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memAlloc.allocationSize = memReqs.size;
-
+	memAllocStagingBuffer.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	memAllocStagingBuffer.allocationSize = memReqs.size;
 	VkPhysicalDeviceMemoryProperties pDevMemProp;
 	vkGetPhysicalDeviceMemoryProperties(pDevice, &pDevMemProp);
 
@@ -253,15 +255,28 @@ int main()
 		typeBits >>= 1;
 	}
 
-	memAlloc.memoryTypeIndex = typeBits;
+	memAllocStagingBuffer.memoryTypeIndex = typeBits;
 	std::cout << typeBits << std::endl;
+
+	typeBits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	for (uint32_t i = 0;i < 32;i++) {
+		if ((typeBits & 1) == 1)
+		{
+			if ((pDevMemProp.memoryTypes[i].propertyFlags & properties) == properties) {
+				typeIndex = i;
+				break;
+			}
+		}
+		typeBits >>= 1;
+	}
+	memAlloc.memoryTypeIndex = typeBits;
 	void *inputData, *outputData;
 
-	result = vkAllocateMemory(device, &memAlloc, nullptr, &inputStagingBuffer.memory);
+	result = vkAllocateMemory(device, &memAllocStagingBuffer, nullptr, &inputStagingBuffer.memory);
 	if (result == VK_SUCCESS) { std::cout << "Device Memory Allocation Success" << std::endl; }
 
-	result = vkMapMemory(device, inputStagingBuffer.memory, 0, memAlloc.allocationSize, 0, &inputData);
-	memcpy(inputData, inputVertices.data(), memAlloc.allocationSize);
+	result = vkMapMemory(device, inputStagingBuffer.memory, 0, memAllocStagingBuffer.allocationSize, 0, &inputData);
+	memcpy(inputData, inputVertices.data(), memAllocStagingBuffer.allocationSize);
 	vkUnmapMemory(device, inputStagingBuffer.memory);
 
 	result = vkBindBufferMemory(device, inputStagingBuffer.buffer, inputStagingBuffer.memory, 0);
@@ -307,7 +322,7 @@ int main()
 	VkBufferCreateInfo outputVertexBufferInfo = {};
 	outputVertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	outputVertexBufferInfo.size = inputVertices.size() * sizeof(Vertex);
-	outputVertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	outputVertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 	vkCreateBuffer(device, &outputVertexBufferInfo, nullptr, &outputStagingBuffer.buffer);
 	if (result == VK_SUCCESS) { std::cout << "Output Buffer Creation Successful!" << std::endl; }
@@ -319,16 +334,12 @@ int main()
 	std::cout << (memReqs.memoryTypeBits & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) << " ";
 	std::cout << (memReqs.memoryTypeBits & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) << std::endl;
 
-	memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	memAlloc.allocationSize = memReqs.size;
-	memAlloc.memoryTypeIndex = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-	
-	result = vkAllocateMemory(device, &memAlloc, nullptr, &outputStagingBuffer.memory);
+	result = vkAllocateMemory(device, &memAllocStagingBuffer, nullptr, &outputStagingBuffer.memory);
 	if (result == VK_SUCCESS) { std::cout << "Output Device Memory Allocation Success" << std::endl; }
 
-	result = vkMapMemory(device, outputStagingBuffer.memory, 0, memAlloc.allocationSize, 0, &outputData);
+	result = vkMapMemory(device, outputStagingBuffer.memory, 0, memAllocStagingBuffer.allocationSize, 0, &outputData);
 	if (result == VK_SUCCESS) { std::cout << "Mapping Memory Output Staging Buffer" << std::endl; }
-
+	vkUnmapMemory(device, outputStagingBuffer.memory);
 	result = vkBindBufferMemory(device, outputStagingBuffer.buffer, outputStagingBuffer.memory, 0);
 	if (result == VK_SUCCESS) { std::cout << "Binding output staging buffer" << std::endl; }
 
@@ -362,9 +373,9 @@ int main()
 	result = vkQueueWaitIdle(copyQueue);
 	if (result == VK_SUCCESS) { std::cout << "Finished copy Command" << std::endl; }
 	else { std::cout << "Failed Finishing copy Command" << std::endl; }
-
-	memcpy(outputVertices.data(), outputData, memAlloc.allocationSize);
-
+	
+	memcpy(outputVertices.data(), outputData, outputVertices.size()*sizeof(Vertex));
+	
 	std::cout << "Input Vertices" << std::endl;
 
 	for (uint32_t i = 0;i < inputVertices.size(); i++)
